@@ -7,4 +7,4 @@
 #$ -q flybrain.q 
 
 # Call your CUDA executable
-./exercise03
+./training
