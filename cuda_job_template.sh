@@ -1,10 +1,10 @@
 #!/bin/bash
 # Request GPU resource
 #$ -l gpu=1
-# Use the flybrain project group
-#$ -P flybrain
-#Use the flybrain queue
-#$ -q flybrain.q 
+# Use the training project group
+#$ -P training
+#Use the training queue
+#$ -q training.q 
 
 # Call your CUDA executable
 ./my_cuda_program
