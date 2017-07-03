@@ -24,15 +24,17 @@ __device__ int modulo(int a, int b){
 
 __global__ void affine_decrypt(int *d_input, int *d_output)
 {
-	/* Exercise 1.2 */
-	// Let's assume we have multiple blocks, each block with N threads
-	// then the position of the data is N*blocki + threadi
-	int i = blockDim.x * blockIdx.x + threadIdx.x;
-	// do calculation
-	int firstpart = AInv * (d_input[i] - B);
-	int result = modulo(firstpart, M);
-	// put output into the right slot
-	d_output[i] = result;
+  /* Exercise 1.2 */
+  // Let's assume we have multiple blocks - number of blocks given by
+  // blockDim.x, blockDim.y etc
+  // for only 1 blockdimension then the position of the data is N*blocki + threadi
+  // for 2 block dimensions, position of data is N1*block1i + 2*N2*block2i + threadi
+  int i = blockDim.x * blockIdx.x + 2*blockDim.y*blockIdx.y + threadIdx.x;
+  // do calculation
+  int firstpart = AInv * (d_input[i] - B);
+  int result = modulo(firstpart, M);
+  // put output into the right slot
+  d_output[i] = result;
 	
 }
 
@@ -68,9 +70,11 @@ int main(int argc, char *argv[])
 	checkCUDAError("Input transfer to device");
 
 	/* Exercise 1.5: Configure the grid of thread blocks and run the GPU kernel */
-	const int nblocks = 8;
+	const int nblocks = 16;
 	const int nthreads = N/nblocks;
-	dim3 blocksPerGrid(nblocks,1,1);
+	// test for 2D grid of blocks
+	//dim3 blocksPerGrid(8,2,1);
+	dim3 blocksPerGrid(nblocks);
 	dim3 threadsPerBlock(nthreads,1,1);
 	affine_decrypt<<<blocksPerGrid,threadsPerBlock>>>(d_input,d_output);
 
