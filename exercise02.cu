@@ -1,10 +1,12 @@
+// -*-c-*-
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 #include <math.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#define N 2048
+#define N 2050
 #define THREADS_PER_BLOCK 128
 
 void checkCUDAError(const char*);
@@ -14,15 +16,21 @@ void random_ints(int *a);
 
 __global__ void vectorAdd(int *a, int *b, int *c, int max) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	c[i] = a[i] - b[i];
+	if(i < max) c[i] = a[i] + b[i];
+
 }
 
+void vectorAddCPU(int n, int* a, int*b, int*c) {
+  for(int i=0; i<n; ++i) {
+    c[i] = a[i] + b[i];
+  }
+}
 
 
 int main(void) {
 	int *a, *b, *c, *c_ref;			// host copies of a, b, c
-	int *d_a, *d_b, *d_c;			// device copies of a, b, c
-	int errors;
+	int *d_a, *d_b, *d_c;			// device copies of a, b, c       
+	int errors=0;
 	unsigned int size = N * sizeof(int);
 
 	// Alloc space for device copies of a, b, c
@@ -54,8 +62,20 @@ int main(void) {
 	cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
 	checkCUDAError("CUDA memcpy");
 
+	// perform cpu version
+	vectorAddCPU(N, a, b, c_ref);
+
+	// check everything
+	for(int i=0; i<N; ++i) {
+	  if( (c[i] - c_ref[i])!=0) {
+	    std::cout << "Error: mismatch for element " << i << " cpu = " << c_ref[i] << " gpu = " << c[i] << std::endl;
+	    ++errors;
+	  }
+	}
+	std::cout << "N(errors) = " << errors << std::endl;
+
 	// Cleanup
-	free(a); free(b); free(c);
+	free(a); free(b); free(c); free(c_ref);
 	cudaFree(d_a); cudaFree(d_b); cudaFree(d_c);
 	checkCUDAError("CUDA cleanup");
 
